@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Source+Sans+Pro:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Poppins', 'Source Sans Pro', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column-reverse;
+            flex-grow: 1;
+            overflow: auto;
+            padding: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+        .message {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .message.ai {
+            justify-content: flex-start;
+        }
+        .message.user {
+            justify-content: flex-end;
+        }
+        .message i {
+            font-size: 2em;
+            margin: 0 10px;
+        }
+        .message .text {
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .message.ai .text {
+            background-color: #eee;
+            margin-left: 30px;
+        }
+        .message.user .text {
+            background-color: #aee;
+        }
+        .message .date {
+            font-size: 0.8em;
+            color: #888;
+            margin-left: 10px;
+        }
+        .input-container {
+            display: flex;
+            padding: 10px;
+        }
+        .input-container input {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+        .input-container button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background-color: #08f;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        var sessionId = "{{ session_id }}";
+        console.log(sessionId);
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="chat-container" id="chat-container">
+        <!-- Chat messages will be added here -->
+    </div>
+    <div class="input-container">
+        <input type="text" id="input" placeholder="Enter your message">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        var userName = prompt("Please enter your name");
+        var chatContainer = document.getElementById('chat-container');
+        var input = document.getElementById('input');
+
+        function addMessage(role, text, date) {
+            var message = document.createElement('div');
+            message.className = 'message ' + role;
+
+            if (role === 'ai') {
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-robot';
+                message.appendChild(icon);
+            }
+
+            var textElement = document.createElement('div');
+            textElement.className = 'text';
+            textElement.textContent = text;
+            message.appendChild(textElement);
+
+            var dateElement = document.createElement('div');
+            dateElement.className = 'date';
+            dateElement.textContent = new Date(date).toLocaleString();
+            message.appendChild(dateElement);
+
+            chatContainer.prepend(message);
+        }
+
+        function sendMessage() {
+            var text = input.value;
+            input.value = '';
+            addMessage('user', text, Date.now());
+            // Here you can call your AI's response method and then use addMessage to add its response to the chat
+        }
+
+        // Add some fake data
+        var words = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi.'.split(' ');
+        for (var i = 0; i < 20; i++) {
+            var text = '';
+            for (var j = 0; j < Math.floor(Math.random() * 5) + 50; j++) {
+                text += words[Math.floor(Math.random() * words.length)] + ' ';
+            }
+            addMessage(i % 2 === 0 ? 'ai' : 'user', text, Date.now() - Math.floor(Math.random() * 100000000));
+        }
+    </script>
+</body>
+</html>

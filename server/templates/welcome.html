@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Poppins', 'Source Sans Pro', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .welcome-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 90%;
+            max-width: 500px;
+        }
+        .welcome-container i {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+        .welcome-container form {
+            display: flex;
+            margin-top: 20px;
+        }
+        .welcome-container input {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+        .welcome-container button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background-color: #08f;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="welcome-container">
+        <i class="fas fa-robot"></i>
+        <h1>Welcome to AI Tutor!</h1>
+        <p>I am an AI tutor. I can maintain conversation on any topic and help improve your English. To start chatting, please enter your name below.</p>
+        <form action="/chat" method="post">
+            <!-- <input type="hidden" name="session_id" value="{{ session_id }}"> -->
+            <input type="text" name="name" placeholder="Enter your name">
+            <button type="submit">Start Chat</button>
+        </form>
+    </div>
+</body>
+</html>

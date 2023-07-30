@@ -1,2 +1,6 @@
-# aitutor
-The implementation of AI tutor
+### AI Tutor
+
+#### To run the service use following command:
+```
+python server/main.py
+```
