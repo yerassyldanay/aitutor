@@ -60,7 +60,7 @@ class ChatHistoryStore:
                 SELECT role, text, created_at
                 FROM chat_history
                 WHERE session_id = ?
-                ORDER BY created_at DESC
+                ORDER BY created_at ASC
             ''', (session_id,))
             rows = await cursor.fetchall()
             return [Conversation(Role(row[0]), row[1], row[2]) for row in rows]

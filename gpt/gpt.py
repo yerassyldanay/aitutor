@@ -44,9 +44,11 @@ class OpenAIChatGPT:
 
     async def send_request(self, messages: List[dict]) -> Tuple[str, int]:
         data = {
-            "model": "gpt-3.5-turbo-16k-0613",
+            "model": "gpt-4",
             "messages": messages,
         }
+        # pprint(f"\nmessages: {messages}\n")
+
         response = None
         async with aiohttp.ClientSession() as session:
             async with session.post(self.url_completion, headers=self.headers, data=json.dumps(data)) as resp:
@@ -91,11 +93,11 @@ async def run():
     messages = [
         {
             "role": "system",
-            "content": variables.DESCRIPTION,
+            "content": variables.DESCRIPTION % "Yerassyl",
         },
         {
             "role": "user",
-            "content": "I want to talk about football. I supporting Real Madrid"
+            "content": "I want talking about football. I supporting Real Madrid"
         }
     ]
     openai_api_model = OpenAIChatGPT(env.GPT_API_KEY)

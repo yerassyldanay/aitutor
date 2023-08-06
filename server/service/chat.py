@@ -20,9 +20,6 @@ class ChatService:
         self.ai_chat = ai_chat
 
     async def chat(self, role: Role, text: str, session_id: str, current_time: int) -> str:
-        # Add the AI's response to the chat history
-        await self.chat_history_store.add_one(Platform.WEB, session_id, role, text, current_time)
-        
         # Check if the session_id exists in the database
         conversations = await self.chat_history_store.get_all_by_session(session_id)
 
@@ -33,14 +30,18 @@ class ChatService:
             # If the session_id exists, add the new message to the conversation
             conversations.append(Conversation(role, text, current_time))
 
+        # print(f"\n1.1. conversations: {conversations}\n")
+
         # Convert conversations to the format expected by OpenAIChatGPT
         messages = [{'role': conv.role.value, 'content': conv.text} for conv in conversations]
+
+        print(f"\nmessages: {messages}\n")
 
         # Send the messages to OpenAIChatGPT and get the response
         response_text, _ = await self.ai_chat.send_request(messages)
 
         # Add the AI's response to the chat history
-        await self.chat_history_store.add_one(Platform.WEB, session_id, Role.ASSISTANT, response_text, current_time)
+        await self.chat_history_store.add_one(Platform.WEB, session_id, role, text, current_time)
 
         return response_text
 
