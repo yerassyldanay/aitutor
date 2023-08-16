@@ -115,7 +115,7 @@ async def upload_audio():
             return jsonify([{
                 'role': 'user',
                 'text': text
-            }, {
+            },{
                 'role': 'ai',
                 'text': response_text
             }])
