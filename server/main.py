@@ -7,6 +7,8 @@ import time
 from quart import Quart, render_template, request, jsonify, redirect, url_for
 from urllib.parse import parse_qs
 
+import speech_recognition as sr
+
 current_path = os.getcwd()
 sys.path.append(current_path)
 
@@ -17,6 +19,10 @@ from server.service.chat import ChatService
 
 app = Quart(__name__)
 
+# Configure uploads
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 chat_history_store = ChatHistoryStore("./databases/web_db.sql")
 open_ai_api = OpenAIChatGPT(env.GPT_API_KEY)
 chat_service = ChatService(chat_history_store, open_ai_api)
@@ -25,6 +31,10 @@ chat_service = ChatService(chat_history_store, open_ai_api)
 async def chat():
     if request.method == "GET":
         return redirect(url_for('home'))
+
+    # name = 'Yera'
+    # add some random text to this variable
+    # response = 'Opus is a new and exciting way to chat with your friends.'
 
     data = await request.get_data()
     parsed_data = parse_qs(data.decode())
@@ -70,6 +80,49 @@ async def message():
 @app.route('/')
 async def home():
     return await render_template('welcome.html')
+
+
+@app.route('/upload-audio', methods=['POST'])
+async def upload_audio():
+    all_files = await request.files
+    if 'audio' not in all_files:
+        return jsonify({"error": "No audio file"}), 400
+    
+    audio_file = all_files['audio']
+    parsed_form_data = await request.form
+    session_id = parsed_form_data.get('session_id', None)
+    if not session_id:
+        return redirect(url_for('home'))
+
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], str(time.time()) +"_" + audio_file.filename)
+    await audio_file.save(file_path)
+
+    recognizer = sr.Recognizer()
+
+    with sr.AudioFile(file_path) as source:
+        audio_data = recognizer.record(source)
+        try:
+            text = recognizer.recognize_google(audio_data)
+
+            # Get the current time
+            current_time = int(time.time())
+
+            # Call the chat method
+            response_text = await chat_service.chat(Role.USER, text, session_id, current_time)
+
+            print(">>> response_text:", response_text)
+
+            return jsonify([{
+                'role': 'user',
+                'text': text
+            }, {
+                'role': 'ai',
+                'text': response_text
+            }])
+        except sr.UnknownValueError:
+            return jsonify({"error": "Could not understand audio"}), 400
+        except sr.RequestError:
+            return jsonify({"error": "API unavailable"}), 500
 
 
 if __name__ == '__main__':

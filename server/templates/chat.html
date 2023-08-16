@@ -75,12 +75,26 @@
             color: white;
             cursor: pointer;
         }
+
+        @keyframes recordingAnimation {
+            0% { content: "Recording." }
+            25% { content: "Recording.." }
+            50% { content: "Recording..." }
+            75% { content: "Recording...." }
+            100% { content: "Recording....." }
+        }
+
+        #input.recording::placeholder {
+            animation: recordingAnimation 2s infinite;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/audiobuffer-to-wav"></script>
     <script>
         var sessionId = "{{ session_id }}";
         console.log("session_id:", sessionId);
 
         var input = document.getElementById('input');
+        var audioButton = document.getElementById('audioButton');
 
         function sendMessage() {
             console.log('Sending message...', input.value);
@@ -104,6 +118,79 @@
                 addMessage('ai', data.text, Date.now());
             });
         }
+
+        let isRecording = false;
+
+        let mediaRecorder;
+        let audioChunks = [];
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioBuffer = await audioContext.decodeAudioData(await audioBlob.arrayBuffer());
+                    const wav = audioBufferToWav(audioBuffer); // Convert to PCM WAV format
+                    sendAudioToServer(new Blob([wav], { type: 'audio/wav' }));
+                };
+            });
+
+            function toggleRecording() {
+                if (isRecording) {
+                    mediaRecorder.stop();
+                    audioButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                    input.placeholder = "Enter your message";
+                    input.classList.remove('recording');
+                    isRecording = false;
+                } else {
+                    audioChunks = [];
+                    mediaRecorder.start();
+                    audioButton.innerHTML = '<i class="fas fa-stop"></i>';
+                    input.placeholder = "Recording.....";
+                    input.classList.add('recording');
+                    isRecording = true;
+                }
+            }
+
+        function sendAudioToServer(audioBlob) {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'audio.wav');
+            formData.append('session_id', sessionId);  // Add session_id to formData
+            
+            addMessage('user', "[you sent an audio]", Date.now(), 'audio', 0);
+
+            fetch('/upload-audio', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Add the audio icon to indicate the user sent an audio
+                console.log('Response from voice recognizer:', data);
+                // if (data.text) {
+                //     addMessage('user', "[Audio Transcription] " + data.text, Date.now(), 'audio', data.length);
+                // }
+                // if (data.length) {
+                //     console.log('Audio length:', data.length);
+                //     addMessage('user', data.length + 's', Date.now(), 'audio', data.length);
+                // }
+                data.forEach(message => {
+                    if (message.role === 'user') {
+                        addMessage(message.role, "[Audio Transcription] " + message.text, Date.now(), 'audio', message.length);
+                    } else {
+                        addMessage(message.role, message.text, Date.now());
+                    }
+                });
+            })
+            .catch(error => {
+                console.error("Error:", error);
+            });
+        }
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
@@ -123,13 +210,15 @@
     <div class="input-container">
         <input type="text" id="input" placeholder="Enter your message">
         <button onclick="sendMessage()">Send</button>
+        <button id="audioButton" onclick="toggleRecording()"><i class="fas fa-microphone"></i></button>
     </div>
 
     <script>
         var chatContainer = document.getElementById('chat-container');
         var input = document.getElementById('input');
+        var audioButton = document.getElementById('audioButton');
 
-        function addMessage(role, text, date) {
+        function addMessage(role, text, date, type = 'text', length = null) {
             var message = document.createElement('div');
             message.className = 'message ' + role;
 
@@ -137,6 +226,14 @@
                 var icon = document.createElement('i');
                 icon.className = 'fas fa-robot';
                 message.appendChild(icon);
+            } else if (type === 'audio') {
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-volume-up'; // Different icon for audio message
+                message.appendChild(icon);
+
+                // var lengthElement = document.createElement('span');
+                // lengthElement.textContent = length + 's';
+                // message.appendChild(lengthElement);
             }
 
             var textElement = document.createElement('div');
