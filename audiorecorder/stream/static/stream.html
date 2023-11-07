@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Streamer</title>
+<style>
+  #recordButton {
+    padding: 20px;
+    font-size: large;
+    cursor: pointer;
+  }
+  /* Add additional styling as needed */
+</style>
+</head>
+<body>
+
+<button id="recordButton">Start Recording</button>
+<div id="transcript"></div>
+
+<script>
+let isRecording = false;
+let mediaRecorder;
+let audioChunks = [];
+
+// Function to handle the recording state
+function toggleRecording() {
+  if (!isRecording) {
+    // Start recording
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+
+        mediaRecorder.ondataavailable = event => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          // When recording stops, send data to server
+          const audioBlob = new Blob(audioChunks, { 'type': 'audio/wav' });
+          sendDataToServer(audioBlob);
+          audioChunks = []; // Clear the old chunks
+        };
+
+        isRecording = true;
+        document.getElementById('recordButton').textContent = 'Stop Recording';
+      });
+  } else {
+    // Stop recording
+    mediaRecorder.stop();
+    isRecording = false;
+    document.getElementById('recordButton').textContent = 'Start Recording';
+  }
+}
+
+// Function to send audio data to the server
+function sendDataToServer(audioData) {
+  const formData = new FormData();
+  formData.append('audio', audioData);
+
+  fetch('/upload', { method: 'POST', body: formData })
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('transcript').textContent = data.transcript;
+    })
+    .catch(error => {
+      console.error('Error:', error);
+    });
+}
+
+document.getElementById('recordButton').addEventListener('click', toggleRecording);
+</script>
+
+</body>
+</html>

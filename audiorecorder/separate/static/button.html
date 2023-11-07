@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Recorder</title>
+    <style>
+        #recordButton {
+            height: 100px;
+            width: 200px;
+            font-size: large;
+        }
+        #status {
+            margin-top: 20px;
+        }
+    </style>
+    <!-- Include the Socket.IO client library -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js" integrity="sha384-DkkWv9oJFWLIydBXXjkBWnG1/fuVhw8YPBq37uvvD6WSYRFRqr21eY5Dg9ZhmWdy" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <button id="recordButton" onclick="toggleRecording()">Start Recording</button>
+    <div id="status">Not recording</div>
+
+    <script>
+        let isRecording = false;
+        let mediaRecorder;
+        let audioChunks = [];
+        const recordButton = document.getElementById('recordButton');
+        const statusDiv = document.getElementById('status');
+
+        // Socket.IO connection setup
+        const socket = io('http://localhost:5000');
+
+        socket.on('connect', function() {
+            console.log("[connect] Socket connected");
+        });
+
+        socket.on('message', function(data) {
+            console.log(`[message] Data received from server: ${data}`);
+            // Here, you can handle messages received from the server
+        });
+
+        async function startRecording() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                    
+                    // Emit the custom 'audio_chunk' event, sending the audio data
+                    socket.emit('audio_chunk', event.data);  // CHANGE HERE
+                }
+            };
+
+            mediaRecorder.start();
+            statusDiv.textContent = "Recording...";
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            statusDiv.textContent = "Not recording";
+            
+            // Emit 'audio_end' event when the recording has stopped
+            socket.emit('audio_end');  // CHANGE HERE
+        }
+
+        function toggleRecording() {
+            if (!isRecording) {
+                startRecording();
+                recordButton.textContent = 'Stop Recording';
+                isRecording = true;
+            } else {
+                stopRecording();
+                recordButton.textContent = 'Start Recording';
+                isRecording = false;
+            }
+        }
+    </script>
+
+</body>
+</html>
